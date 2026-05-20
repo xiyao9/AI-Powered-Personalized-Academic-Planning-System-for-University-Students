@@ -25,9 +25,9 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True, comment="用户 ID")
     name = Column(String(100), nullable=False, comment="姓名")
-    grade = Column(Enum(Grade), nullable=False, comment="年级")
+    grade = Column(Enum(Grade, values_callable=lambda x: [e.value for e in x]), nullable=False, comment="年级")
     major = Column(String(100), nullable=False, comment="专业")
-    future_direction = Column(Enum(FutureDirection), nullable=False, comment="未来方向")
+    future_direction = Column(Enum(FutureDirection, values_callable=lambda x: [e.value for e in x]), nullable=False, comment="未来方向")
     weaknesses = Column(Text, comment="自身短板")
     interests = Column(Text, comment="兴趣倾向")
     created_at = Column(DateTime, default=datetime.now, comment="创建时间")

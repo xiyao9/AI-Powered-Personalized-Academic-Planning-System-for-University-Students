@@ -1,7 +1,7 @@
 """API Schema - 数据验证模型"""
-from pydantic import BaseModel
-from typing import Optional
-from datetime import datetime
+from pydantic import BaseModel, field_serializer
+from typing import Optional, Union
+from datetime import datetime, date
 
 # 用户相关 Schema
 class UserCreate(BaseModel):
@@ -71,6 +71,9 @@ class CheckInRecordResponse(BaseModel):
 
     class Config:
         from_attributes = True
+        json_encoders = {
+            date: lambda v: v.strftime('%Y-%m-%d') if v else None
+        }
 
 # AI 问答 Schema
 class QuestionRequest(BaseModel):

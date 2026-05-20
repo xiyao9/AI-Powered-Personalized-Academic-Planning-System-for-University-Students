@@ -16,7 +16,7 @@ class Resource(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True, comment="资源 ID")
     name = Column(String(200), nullable=False, comment="资源名称")
-    resource_type = Column(Enum(ResourceType), nullable=False, comment="资源类型")
+    resource_type = Column(Enum(ResourceType, values_callable=lambda x: [e.value for e in x]), nullable=False, comment="资源类型")
     target_major = Column(String(100), comment="适用专业")
     target_direction = Column(String(100), comment="适用方向")
     description = Column(Text, comment="资源描述")

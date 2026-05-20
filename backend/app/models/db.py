@@ -11,7 +11,7 @@ SQLALCHEMY_DATABASE_URL = os.getenv(
 )
 
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
+    SQLALCHEMY_DATABASE_URL + "?charset=utf8mb4",
     pool_pre_ping=True,
     pool_recycle=3600
 )

@@ -13,35 +13,14 @@ router = APIRouter()
 @router.get("/recommendations", response_model=List[ResourceRecommendation])
 async def get_recommendations(major: str, direction: str, db: Session = Depends(get_db)):
     """获取智能推荐的资源列表"""
-    settings = get_settings()
-    ai_service = AIService(
-        api_key=settings.ai_api_key,
-        api_base=settings.ai_api_base,
-        model=settings.ai_model
-    )
-
-    # 尝试从 AI 获取推荐
-    recommendations = ai_service.get_resource_recommendations(major, direction)
-
-    # 同时从数据库查询已有的推荐资源
+    # 从数据库查询已有的推荐资源
     db_resources = db.query(Resource).filter(
         (Resource.target_major == major) |
         (Resource.target_major.is_(None)),
         Resource.is_recommended == 1
     ).limit(10).all()
 
-    # 合并结果
     result = []
-    for rec in recommendations[:5]:  # 限制数量
-        if isinstance(rec, dict):
-            result.append(ResourceRecommendation(
-                name=rec.get("name", "未知资源"),
-                resource_type=rec.get("type", "course"),
-                description=rec.get("description", ""),
-                url=rec.get("url"),
-                is_recommended=True
-            ))
-
     for res in db_resources:
         result.append(ResourceRecommendation(
             name=res.name,

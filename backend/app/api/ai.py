@@ -27,8 +27,8 @@ async def ask_ai(question_req: QuestionRequest, db: Session = Depends(get_db)):
         model=settings.ai_model
     )
 
-    context = f"学生专业：{user.major}, 年级：{user.grade}, 发展方向：{user.future_direction}"
-    ai_answer = ai_service.answer_question(question_req.question, context)
+    context = f"学生专业：{user.major}, 年级：{str(user.grade)}, 发展方向：{str(user.future_direction)}"
+    ai_answer = await ai_service.answer_question(question_req.question, context)
 
     # 保存对话记录
     new_dialog = AIDialog(

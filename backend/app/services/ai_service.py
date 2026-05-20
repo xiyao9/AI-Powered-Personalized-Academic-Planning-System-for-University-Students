@@ -2,6 +2,7 @@
 from typing import Optional
 import os
 import json
+import asyncio
 
 class AIService:
     """AI 服务类，封装大模型 API 调用"""
@@ -11,10 +12,8 @@ class AIService:
         self.api_base = api_base
         self.model = model
 
-    def generate_planning(self, user_info: dict) -> str:
-        """
-        根据用户信息生成专属规划
-        """
+    async def generate_planning(self, user_info: dict) -> str:
+        """根据用户信息生成专属规划（异步）"""
         prompt = f"""你是一位资深的大学生学业规划师。请为以下学生制定一份详细的大学四年规划：
 
 【学生基本信息】
@@ -39,13 +38,11 @@ class AIService:
 - 实习建议
 - 时间管理建议"""
 
-        response = self._call_api(prompt)
+        response = await self._call_api(prompt)
         return response
 
-    def get_resource_recommendations(self, major: str, direction: str) -> list:
-        """
-        获取学习资源推荐
-        """
+    async def get_resource_recommendations(self, major: str, direction: str) -> list:
+        """获取学习资源推荐（异步）"""
         prompt = f"""请为{major}专业、发展方向为{self._get_direction_desc(direction)}的学生推荐学习资源。
 
 要求推荐：
@@ -57,42 +54,35 @@ class AIService:
 每条资源包括：名称、类型、简要说明、推荐理由。
 用 JSON 格式返回，不要其他多余内容。"""
 
-        response = self._call_api(prompt)
+        response = await self._call_api(prompt)
         try:
-            # 尝试解析 JSON
             if "```json" in response:
                 response = response.replace("```json", "").replace("```", "")
             return json.loads(response.strip())
         except:
             return [{"name": "通用资源", "type": "course", "description": response}]
 
-    def answer_question(self, question: str, context: Optional[str] = None) -> str:
-        """
-        回答学生问题
-        """
+    async def answer_question(self, question: str, context: Optional[str] = None) -> str:
+        """回答学生问题（异步）"""
         system_prompt = "你是一位经验丰富的大学学业规划顾问，擅长为学生提供专业发展、考研、就业、考公等方面的指导。"
-
         user_prompt = f"""我的问题是：{question}
 
 {'背景信息：' + context if context else ''}
 
 请给出专业、实用、可操作的建议。"""
 
-        response = self._call_api(system_prompt + "\n\n" + user_prompt, is_chat=True)
+        response = await self._call_api(system_prompt + "\n\n" + user_prompt, is_chat=True)
         return response
 
-    def _call_api(self, prompt: str, is_chat: bool = False) -> str:
-        """调用 API 的通用方法"""
+    async def _call_api(self, prompt: str, is_chat: bool = False) -> str:
+        """异步调用 API 的通用方法，使用 aiohttp 避免阻塞事件循环"""
         try:
-            import requests
-
+            import aiohttp
             url = f"{self.api_base}/chat/completions"
-
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json"
             }
-
             data = {
                 "model": self.model,
                 "messages": [
@@ -101,16 +91,13 @@ class AIService:
                 ],
                 "temperature": 0.7
             }
-
-            response = requests.post(url, headers=headers, json=data, timeout=60)
-            response.raise_for_status()
-
-            result = response.json()
-            return result["choices"][0]["message"]["content"]
-
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, headers=headers, json=data, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                    response.raise_for_status()
+                    result = await response.json()
+                    return result["choices"][0]["message"]["content"]
         except Exception as e:
             print(f"API 调用失败：{e}")
-            # 返回模拟数据用于测试
             return self._get_mock_response(prompt)
 
     def _get_mock_response(self, prompt: str) -> str:
@@ -148,9 +135,9 @@ class AIService:
 ## 二、必考证清单
 
 ### 通用证书（所有专业建议）
-1. **英语四级/六级** — 基本门槛，尽早通过
-2. **计算机二级** — 办公技能证明
-3. **普通话水平测试** — 教师/公务员必备
+1. **英语四级/六级** - 基本门槛，尽早通过
+2. **计算机二级** - 办公技能证明
+3. **普通话水平测试** - 教师/公务员必备
 
 ### 专业证书（根据专业有所差异）
 - 计算机类：软考中级/高级、华为/阿里认证
@@ -211,27 +198,27 @@ class AIService:
 
 ## 二、经典书籍推荐
 
-1. **《学会学习》** — 掌握高效学习方法
-2. **《刻意练习》** — 技能提升的科学路径
-3. **《深度工作》** — 培养专注力
-4. **《被讨厌的勇气》** — 建立健康的自我认知
+1. **《学会学习》** - 掌握高效学习方法
+2. **《刻意练习》** - 技能提升的科学路径
+3. **《深度工作》** - 培养专注力
+4. **《被讨厌的勇气》** - 建立健康的自我认知
 
 ## 三、实用工具与网站
 
-1. **学校图书馆数据库** — 免费获取学术资源
-2. **知网（cnki.net）** — 中文文献检索
-3. **GitHub** — 计算机专业必备
-4. **Notion / 语雀** — 知识管理和笔记整理
-5. **番茄ToDo** — 时间管理和打卡
+1. **学校图书馆数据库** - 免费获取学术资源
+2. **知网（cnki.net）** - 中文文献检索
+3. **GitHub** - 计算机专业必备
+4. **Notion / 语雀** - 知识管理和笔记整理
+5. **番茄ToDo** - 时间管理和打卡
 
 ## 四、刷题与练习资源
 
-1. **LeetCode** — 编程能力训练
-2. **牛客网** — 笔试面试真题
-3. **粉笔公考** — 考公行测/申论刷题
-4. **考研帮** — 考研真题和经验"""
+1. **LeetCode** - 编程能力训练
+2. **牛客网** - 笔试面试真题
+3. **粉笔公考** - 考公行测/申论刷题
+4. **考研帮** - 考研真题和经验"""
         elif "打卡" in prompt or "任务" in prompt or "鼓励" in prompt or "建议" in prompt:
-            return "太棒了！能看到你在坚持学习和打卡，这已经超过了大多数同学 👏\n\n**给你的几点建议：**\n\n1. **继续保持** — 坚持是最难的事，你在做一件很了不起的事\n2. **注意节奏** — 不要急于求成，按自己的节奏稳步前进\n3. **定期复盘** — 每周回顾一下哪些做得好、哪些可以改进\n4. **调整心态** — 偶尔没完成任务也没关系，重要的是第二天继续\n\n加油！每天进步一点点，四年后你会感谢现在努力的自己 💪"
+            return "太棒了！能看到你在坚持学习和打卡，这已经超过了大多数同学！\n\n**给你的几点建议：**\n\n1. **继续保持** - 坚持是最难的事，你在做一件很了不起的事\n2. **注意节奏** - 不要急于求成，按自己的节奏稳步前进\n3. **定期复盘** - 每周回顾一下哪些做得好、哪些可以改进\n4. **调整心态** - 偶尔没完成任务也没关系，重要的是第二天继续\n\n加油！每天进步一点点，四年后你会感谢现在努力的自己！"
         else:
             return f"""这是一个很好的问题！作为你的学业规划顾问，我来给你一些建议：
 
@@ -239,11 +226,11 @@ class AIService:
 
 每个人的情况不同，但以下几点是通用的建议：
 
-1. **明确目标** — 先想清楚自己想要什么，是考研、就业还是考公？
-2. **拆解任务** — 把大目标分解为每月、每周可执行的小任务
-3. **利用资源** — 善用 MOOC、B站等免费学习平台
-4. **多向请教** — 主动找学长学姐和老师交流经验
-5. **保持行动** — 规划再好不如行动，先做起来再优化
+1. **明确目标** - 先想清楚自己想要什么，是考研、就业还是考公？
+2. **拆解任务** - 把大目标分解为每月、每周可执行的小任务
+3. **利用资源** - 善用 MOOC、B站等免费学习平台
+4. **多向请教** - 主动找学长学姐和老师交流经验
+5. **保持行动** - 规划再好不如行动，先做起来再优化
 
 如果你有更具体的问题，欢迎继续向我提问！"""
 

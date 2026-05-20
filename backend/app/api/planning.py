@@ -38,14 +38,14 @@ async def generate_planning(request: PlanningRequest, db: Session = Depends(get_
 
     user_info = {
         "name": user.name,
-        "grade": user.grade,
+        "grade": str(user.grade),
         "major": user.major,
-        "future_direction": user.future_direction,
+        "future_direction": str(user.future_direction),
         "weaknesses": user.weaknesses,
         "interests": user.interests
     }
 
-    planning_content = ai_service.generate_planning(user_info)
+    planning_content = await ai_service.generate_planning(user_info)
 
     # 保存到数据库
     new_planning = PlanningScheme(

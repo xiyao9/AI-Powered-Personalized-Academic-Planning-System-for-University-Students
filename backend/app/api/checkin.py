@@ -11,7 +11,7 @@ from ..schemas.common import CheckInCreate, CheckInRecordResponse
 
 router = APIRouter()
 
-@router.post("/checkin", response_model=CheckInRecordResponse)
+@router.post("/checkin")
 async def create_checkin(record: CheckInCreate, db: Session = Depends(get_db)):
     """创建打卡记录"""
     # 检查用户是否存在
@@ -30,8 +30,8 @@ async def create_checkin(record: CheckInCreate, db: Session = Depends(get_db)):
         model=settings.ai_model
     )
 
-    context = f"学生专业：{user.major}, 发展方向：{user.future_direction}"
-    ai_feedback = ai_service.answer_question(
+    context = f"学生专业：{user.major}, 发展方向：{str(user.future_direction)}"
+    ai_feedback = await ai_service.answer_question(
         f"用户今天完成了这些任务：{record.task_completed}。根据用户的规划，给予一些鼓励和建议。",
         context
     )
@@ -47,9 +47,18 @@ async def create_checkin(record: CheckInCreate, db: Session = Depends(get_db)):
     db.add(new_record)
     db.commit()
     db.refresh(new_record)
-    return new_record
 
-@router.get("/{user_id}/records", response_model=List[CheckInRecordResponse])
+    return {
+        "id": new_record.id,
+        "user_id": new_record.user_id,
+        "check_in_date": new_record.check_in_date.strftime("%Y-%m-%d"),
+        "task_completed": new_record.task_completed,
+        "progress_notes": new_record.progress_notes,
+        "ai_feedback": new_record.ai_feedback,
+        "created_at": new_record.created_at
+    }
+
+@router.get("/{user_id}/records")
 async def get_user_checkins(user_id: int, start_date: str = None, end_date: str = None, db: Session = Depends(get_db)):
     """获取用户的打卡记录"""
     query = db.query(CheckInRecord).filter(CheckInRecord.user_id == user_id)
@@ -60,7 +69,15 @@ async def get_user_checkins(user_id: int, start_date: str = None, end_date: str 
         query = query.filter(CheckInRecord.check_in_date <= datetime.strptime(end_date, "%Y-%m-%d").date())
 
     records = query.order_by(CheckInRecord.check_in_date.desc()).all()
-    return records
+    return [{
+        "id": r.id,
+        "user_id": r.user_id,
+        "check_in_date": r.check_in_date.strftime("%Y-%m-%d") if r.check_in_date else "",
+        "task_completed": r.task_completed,
+        "progress_notes": r.progress_notes,
+        "ai_feedback": r.ai_feedback,
+        "created_at": r.created_at
+    } for r in records]
 
 @router.get("/{user_id}/statistics")
 async def get_checkin_statistics(user_id: int, days: int = 30, db: Session = Depends(get_db)):

@@ -82,12 +82,12 @@ createApp({
             this.currentUser = JSON.parse(cachedUser);
         }
 
+        // 检查管理员状态（不再在挂载时调用 API，避免"未认证"错误）
         const cachedAdmin = localStorage.getItem('isAdmin');
         if (cachedAdmin === 'true') {
             this.isAuthenticated = true;
             this.adminInfo = { username: 'admin' };
-            this.loadTemplates();
-            this.loadAdminResources();
+            // loadTemplates 和 loadAdminResources 会在用户实际访问 admin 页面时调用
         }
     },
 

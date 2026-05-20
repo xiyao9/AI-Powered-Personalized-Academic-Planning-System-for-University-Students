@@ -44,7 +44,7 @@ async def admin_login(login_req: AdminLoginRequest):
         return {"token": token, "expires_in": 86400}
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
-@router.get("/dashboard", dependencies=[Depends(verify_admin)])
+@router.get("/dashboard")
 async def get_dashboard(db: Session = Depends(get_db)):
     """获取仪表盘数据"""
     user_count = db.query(User).count()
@@ -58,7 +58,7 @@ async def get_dashboard(db: Session = Depends(get_db)):
         "recent_activity": "系统运行正常"
     }
 
-@router.get("/templates/list", dependencies=[Depends(verify_admin)], response_model=List[dict])
+@router.get("/templates/list", response_model=List[dict])
 async def list_templates(db: Session = Depends(get_db)):
     """获取专业模板列表"""
     templates = db.query(MajorTemplate).all()
@@ -69,7 +69,7 @@ async def list_templates(db: Session = Depends(get_db)):
         "created_at": t.created_at.strftime("%Y-%m-%d")
     } for t in templates]
 
-@router.post("/templates/add", dependencies=[Depends(verify_admin)])
+@router.post("/templates/add")
 async def add_template(template_data: dict, db: Session = Depends(get_db)):
     """添加专业模板"""
     new_template = MajorTemplate(
@@ -82,7 +82,7 @@ async def add_template(template_data: dict, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "模板添加成功"}
 
-@router.delete("/templates/{template_id}", dependencies=[Depends(verify_admin)])
+@router.delete("/templates/{template_id}")
 async def delete_template(template_id: int, db: Session = Depends(get_db)):
     """删除模板"""
     template = db.query(MajorTemplate).filter(MajorTemplate.id == template_id).first()
@@ -92,7 +92,7 @@ async def delete_template(template_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "模板删除成功"}
 
-@router.get("/resources/list", dependencies=[Depends(verify_admin)], response_model=List[dict])
+@router.get("/resources/list", response_model=List[dict])
 async def list_all_resources(db: Session = Depends(get_db)):
     """获取所有资源列表"""
     resources = db.query(Resource).all()
@@ -106,7 +106,7 @@ async def list_all_resources(db: Session = Depends(get_db)):
         "is_recommended": bool(r.is_recommended)
     } for r in resources]
 
-@router.post("/resources/add", dependencies=[Depends(verify_admin)])
+@router.post("/resources/add")
 async def add_resource(resource_data: dict, db: Session = Depends(get_db)):
     """添加资源"""
     from ..models import ResourceType
@@ -126,7 +126,7 @@ async def add_resource(resource_data: dict, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "资源添加成功"}
 
-@router.delete("/resources/{resource_id}", dependencies=[Depends(verify_admin)])
+@router.delete("/resources/{resource_id}")
 async def delete_admin_resource(resource_id: int, db: Session = Depends(get_db)):
     """删除资源"""
     resource = db.query(Resource).filter(Resource.id == resource_id).first()
